@@ -4,6 +4,7 @@ import { Link, useForm } from "@inertiajs/inertia-react";
 import Layout from "../layout";
 import { Inertia } from "@inertiajs/inertia";
 import { useDebounce } from "use-debounce-hook";
+import { isNotUndefined, usePrevious } from "../../hooks";
 
 interface ITodo {
     id: number;
@@ -20,9 +21,9 @@ const initialValue: ITodo = {
 };
 
 function Todo({ model }: ITodoProps) {
-    const [flag, setFlag] = useState<boolean>(false);
     const [search, setSearch] = useState<string>("");
-    const text = useDebounce(search, 1000);
+    const previous = usePrevious(search);
+    const text = useDebounce(search, 580);
     const { data, setData, post, processing, errors, reset } = useForm<ITodo>({
         ...initialValue,
     });
@@ -57,11 +58,7 @@ function Todo({ model }: ITodoProps) {
     }
 
     useEffect(() => {
-        setFlag(true);
-    }, []);
-
-    useEffect(() => {
-        if (flag) {
+        if (isNotUndefined(previous)) {
             loadSearch();
         }
     }, [text]);
