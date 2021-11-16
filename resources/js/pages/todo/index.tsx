@@ -1,8 +1,9 @@
-import React, { FormEvent, useEffect } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Link, useForm } from "@inertiajs/inertia-react";
 
 import Layout from "../layout";
 import { Inertia } from "@inertiajs/inertia";
+import { useDebounce } from "use-debounce-hook";
 
 interface ITodo {
     id: number;
@@ -19,6 +20,9 @@ const initialValue: ITodo = {
 };
 
 function Todo({ model }: ITodoProps) {
+    const [flag, setFlag] = useState<boolean>(false);
+    const [search, setSearch] = useState<string>("");
+    const text = useDebounce(search, 1000);
     const { data, setData, post, processing, errors, reset } = useForm<ITodo>({
         ...initialValue,
     });
@@ -33,32 +37,98 @@ function Todo({ model }: ITodoProps) {
         });
     }
 
+    function handleChangeSearch(e: ChangeEvent<HTMLInputElement>): void {
+        const { value } = e.target;
+        setSearch(value);
+    }
+
+    function handleSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        loadSearch();
+    }
+
+    function loadSearch() {
+        Inertia.visit("/todo", {
+            data: { search: search || "" },
+            only: ["model"],
+            preserveState: true,
+            replace: true,
+        });
+    }
+
+    useEffect(() => {
+        setFlag(true);
+    }, []);
+
+    useEffect(() => {
+        if (flag) {
+            loadSearch();
+        }
+    }, [text]);
+
     return (
         <div>
-            <h3>Todo</h3>
-            <form onSubmit={submit}>
-                <div className="mt-2 mb-2 form-group">
-                    <label htmlFor="description">Descrição</label>
-                    <input
-                        id="description"
-                        placeholder="descrição"
-                        className="form-control form-control-sm"
-                        type="text"
-                        value={data.description}
-                        onChange={(e) => setData("description", e.target.value)}
-                    />
-                    {errors.description && <div>{errors.description}</div>}
-                </div>
-                <div className="mt-2 mb-2">
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="btn btn-primary btn-sm"
-                    >
-                        Inserir
-                    </button>
-                </div>
-            </form>
+            <h3>Todo {text}</h3>
+            <div>
+                <form onSubmit={submit}>
+                    <div className="row">
+                        <div className="col-md-12">
+                            <div className="mt-2 mb-2 form-group">
+                                <label htmlFor="description">Descrição</label>
+                                <input
+                                    id="description"
+                                    placeholder="descrição"
+                                    className="form-control form-control-sm"
+                                    type="text"
+                                    value={data.description}
+                                    onChange={(e) =>
+                                        setData("description", e.target.value)
+                                    }
+                                />
+                                {errors.description && (
+                                    <div>{errors.description}</div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="col-md-12">
+                            <div className="mt-2 mb-2">
+                                <div className="d-grid gap-2">
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        Inserir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div>
+                <form onSubmit={handleSubmit}>
+                    <div className="input-group mb-3">
+                        <input
+                            placeholder={"Pesquisa"}
+                            id="search"
+                            name="search"
+                            type="search"
+                            value={search}
+                            className="form-control form-control-sm"
+                            onChange={handleChangeSearch}
+                        />
+                        <div className="input-group-append">
+                            <button
+                                className="btn btn-outline-secondary btn-sm"
+                                type="submit"
+                            >
+                                Filtro
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
             <div>
                 <table className="table table-sm">
                     <thead>
@@ -87,6 +157,7 @@ function Todo({ model }: ITodoProps) {
                 </table>
                 <div style={{ textAlign: "right" }}>
                     <Link
+                        preserveState={true}
                         href={model.prev_page_url}
                         disabled={model.prev_page_url === null}
                         as="button"
@@ -95,6 +166,7 @@ function Todo({ model }: ITodoProps) {
                         Anterior
                     </Link>{" "}
                     <Link
+                        preserveState={true}
                         href={model.next_page_url}
                         disabled={model.next_page_url === null}
                         as="button"

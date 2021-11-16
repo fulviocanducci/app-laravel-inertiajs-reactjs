@@ -10,7 +10,12 @@ class TodoController extends Controller
 {
     protected function init() 
     {
-        $model = Todo::orderBy('description','asc')->paginate(5);
+        $model = Todo::orderBy('description','asc')
+            ->when(request()->search, function($query, $search){
+                $query->where('description', 'LIKE', "%{$search}%");
+            })            
+            ->paginate(10)
+            ->withQueryString();
         return Inertia::render("todo/index", ['model' => $model]);
     }
 
